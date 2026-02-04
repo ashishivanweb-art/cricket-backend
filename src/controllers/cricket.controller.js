@@ -1,73 +1,105 @@
 import axios from 'axios';
+import Score from '../models/score.js';
+import Series from '../models/series.js'
+import Match from '../models/match.js';
 
-const API_KEY = process.env.CRICKET_API_KEY;
+// export const getCurrentSeries = async (req, res) => {
+//   try {
+//     const matches = await Match.find()
+//       .populate('teamA')
+//       .populate('teamB')
+//       .sort({ createdAt: -1 });
 
-function isLiveMatch(match) {
-  if (!match?.status) return false;
+//     res.json(matches);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
-  return /live|in progress|innings break|stumps/i.test(match.status);
-}
-export const getLiveMatches = async (req, res) => {
+export const getCurrentMatches = async (req, res) => {
   try {
-    console.log("API KEY:", process.env.CRICKET_API_KEY);
+    const { status } = req.query; // live | upcoming | finished
 
-    const url = `https://api.cricapi.com/v1/currentMatches?apikey=${process.env.CRICKET_API_KEY}&offset=0`;
-    console.log("Calling URL:", url);
+    let filter = {};
 
-    const response = await axios.get(url);
+    if (status) {
+      filter.status = status;
+    }
 
-    console.log("FULL RESPONSE FROM CRICAPI:");
-    console.log(JSON.stringify(response.data, null, 2));
+    const matches = await Match.find(filter)
+      .populate('teamA')
+      .populate('teamB')
+      .sort({ createdAt: -1 });
 
-    res.json(response.data);
-  } catch (error) {
-    console.error("CRICAPI ERROR:");
-    console.error(error.response?.data || error.message);
-
-    res.status(500).json({
-      error: error.response?.data || error.message,
-    });
+    res.json(matches);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
-
 
 
 export const getMatchById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const response = await axios.get(
-      `https://api.cricapi.com/v1/match_info`,
-      {
-        params: {
-          apikey: process.env.CRICKET_API_KEY,
-          id,
-        },
-      }
-    );
+    const match = await Match.findById(id)
+      .populate('teamA')
+      .populate('teamB');
+
+    const score = await Score.findOne({ matchId: id });
 
     res.json({
-      status: 'success',
-      data: response.data.data,
+      match,
+      score,
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch match' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-export const getCurrentSeries = async (req, res) => {
+
+
+export const getMatchScore = async (req, res) => {
   try {
-    const response = await axios.get(
-      `https://api.cricapi.com/v1/series?apikey=${process.env.CRICKET_API_KEY}&offset=0`
-      // `https://api.cricapi.com/v1/series?apikey=8a411540-ca1d-42e5-9d2e-bb05cb0c5a41&offset=0`
-      
-    );
+    const { matchId } = req.params;
 
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({
-      message: 'Failed to fetch Current Series.',
-      error: error.message,
+    const score = await Score.findOne({ matchId }).populate({
+      path: 'matchId',
+      populate: ['teamA', 'teamB']
     });
+
+    if (!score) {
+      return res.status(404).json({ message: 'Score not found' });
+    }
+
+    res.json(score);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+
+export const getAllSeries = async (req, res) => {
+  try {
+    const series = await Series.find().sort({ createdAt: -1 });
+    res.json(series);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getSeriesById = async (req, res) => {
+  try {
+    const seriesId = req.params.id;
+
+    const matches = await Match.find({ seriesId })
+      .populate('teamA')
+      .populate('teamB');
+
+    res.json(matches);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
