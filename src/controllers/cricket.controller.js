@@ -57,27 +57,6 @@ export const getMatchById = async (req, res) => {
   }
 };
 
-
-
-export const getMatchScore = async (req, res) => {
-  try {
-    const { matchId } = req.params;
-
-    const score = await Score.findOne({ matchId }).populate({
-      path: 'matchId',
-      populate: ['teamA', 'teamB']
-    });
-
-    if (!score) {
-      return res.status(404).json({ message: 'Score not found' });
-    }
-
-    res.json(score);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 export const getAllSeries = async (req, res) => {
   try {
     const series = await Series.find().sort({ createdAt: -1 });

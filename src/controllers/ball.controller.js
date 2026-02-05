@@ -1,3 +1,6 @@
+import Match from  '../models/match.js';
+import Ball from '../models/ball.js';
+
 export const bowlBall = async (req, res) => {
   try {
     const { matchId, runs, extraType, isWicket } = req.body;
@@ -54,6 +57,58 @@ export const bowlBall = async (req, res) => {
       match.striker = match.nonStriker;
       match.nonStriker = temp;
     }
+
+    // ✅ Handle wicket
+if (isWicket) {
+      match.wicketsDown += 1;
+
+  const battingPlaying11 =
+    match.battingTeam.toString() === match.teamA.toString()
+      ? match.teamAPlaying11
+      : match.teamBPlaying11;
+
+  // Find next batsman who has not batted
+  const nextBatsman = battingPlaying11.find(
+    (p) => !match.battedPlayers.includes(p.toString())
+  );
+
+  if (nextBatsman) {
+    match.striker = nextBatsman;
+    match.battedPlayers.push(nextBatsman);
+  } else {
+    // All out
+    match.status = 'inning-break';
+  }
+}
+
+//  Check innings end
+if (
+  match.wicketsDown === 10 ||
+  (over === match.totalOvers && ballNumber === 6)
+) {
+  if (match.inning === 1) {
+    // Switch innings
+    match.inning = 2;
+    match.wicketsDown = 0;
+
+    // Swap batting & bowling teams
+    const temp = match.battingTeam;
+    match.battingTeam = match.bowlingTeam;
+    match.bowlingTeam = temp;
+
+    // Reset striker, non-striker, bowler
+    match.striker = null;
+    match.nonStriker = null;
+    match.currentBowler = null;
+    match.battedPlayers = [];
+
+    match.status = 'inning-break';
+  } else {
+    // Match finished
+    match.status = 'finished';
+  }
+}
+
 
     await match.save();
 

@@ -78,33 +78,7 @@ export const createMatch = async (req, res) => {
 
 
 
-export const updateScore = async (req, res) => {
-  try {
-    const { matchId, runs, wickets, overs, balls } = req.body;
 
-    let score = await Score.findOne({ matchId });
-
-    if (!score) {
-      score = await Score.create({ matchId, runs, wickets, overs, balls });
-    } else {
-      score.runs = runs;
-      score.wickets = wickets;
-      score.overs = overs;
-      score.balls = balls;
-      await score.save();
-    }
-
-    // 🔥 Emit live update
-    global.io.emit('scoreUpdate', score);
-
-    res.json({
-      message: 'Score updated & broadcasted',
-      score,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
 
 export const addSeries = async (req, res) => {
@@ -214,6 +188,8 @@ export const startInnings = async (req, res) => {
     match.nonStriker = nonStriker;
     match.currentBowler = bowler;
 
+    match.battedPlayers = [striker, nonStriker];
+
     await match.save();
 
     res.json({
@@ -224,6 +200,34 @@ export const startInnings = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// export const updateScore = async (req, res) => {
+//   try {
+//     const { matchId, runs, wickets, overs, balls } = req.body;
+
+//     let score = await Score.findOne({ matchId });
+
+//     if (!score) {
+//       score = await Score.create({ matchId, runs, wickets, overs, balls });
+//     } else {
+//       score.runs = runs;
+//       score.wickets = wickets;
+//       score.overs = overs;
+//       score.balls = balls;
+//       await score.save();
+//     }
+
+//     // 🔥 Emit live update
+//     global.io.emit('scoreUpdate', score);
+
+//     res.json({
+//       message: 'Score updated & broadcasted',
+//       score,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 
 

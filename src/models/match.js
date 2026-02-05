@@ -63,7 +63,24 @@ nonStriker: {
 currentBowler: {
   type: mongoose.Schema.Types.ObjectId,
   ref: 'Player'
+},
+battedPlayers: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Player'
+  }
+],
+
+totalOvers: {
+  type: Number,
+  default: 20
+},
+wicketsDown: {
+  type: Number,
+  default: 0
 }
+
+
 
 
 }, { timestamps: true });
