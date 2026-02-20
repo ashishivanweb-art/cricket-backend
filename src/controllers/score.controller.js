@@ -137,3 +137,17 @@ export const getBowlerFigures = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getLastOverBalls = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    const balls = await Ball.find({ match: matchId })
+      .sort({ createdAt: -1 })
+      .limit(6);
+
+    res.json(balls.reverse()); // oldest → latest
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -15,6 +15,11 @@ const playerSchema = new mongoose.Schema({
     ref: 'Team',
     required: true,
   },
+   owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true
+  }
 }, { timestamps: true });
 
 export default mongoose.model('Player', playerSchema);

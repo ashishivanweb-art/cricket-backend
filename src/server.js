@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 const server = http.createServer(app);
 
-const io = new Server(server, {
+export const io = new Server(server, {
   cors: { origin: '*' },
 });
 

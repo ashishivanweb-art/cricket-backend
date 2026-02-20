@@ -78,9 +78,46 @@ totalOvers: {
 wicketsDown: {
   type: Number,
   default: 0
-}
+},
+initialOvers: {
+  type: Number,
+  default: 20
+},
+currentOvers: {
+  type: Number,
+  default: 20
+},
+matchPaused: {
+  type: Boolean,
+  default: false
+},
+owner: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Admin',
+  required: true
+},
+
+inningsType: {
+  type: String,
+  enum: ['normal', 'super-over'],
+  default: 'normal'
+},
+
+inningsHistory: [
+  {
+    inningsNumber: Number,
+    inningsType: { type: String, enum: ['normal', 'super-over'] },
+    battingTeam: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+    bowlingTeam: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+    runs: Number,
+    wickets: Number,
+    balls: Number
+  }
+],
 
 
+targetRuns: { type:Number},
+isDLSApplied:{type: Boolean, default: false }
 
 
 }, { timestamps: true });

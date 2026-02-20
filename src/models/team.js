@@ -17,6 +17,11 @@ const teamSchema = new mongoose.Schema({
 
   logo: {
     type: String,
+  },
+   owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true
   }
 }, { timestamps: true });
 

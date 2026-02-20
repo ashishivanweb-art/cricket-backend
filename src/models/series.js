@@ -15,6 +15,11 @@ const seriesSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  owner: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Admin',
+  required: true
+},
 }, { timestamps: true });
 
 export default mongoose.model('Series', seriesSchema);
