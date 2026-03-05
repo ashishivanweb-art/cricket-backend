@@ -4,17 +4,87 @@ import Score from '../models/score.js';
 import Series from '../models/series.js';
 import Player from '../models/player.js';
 
-
+// Teams Apis
 export const createTeam = async (req, res) => {
   try {
     const { name, shortName, logo } = req.body;
 
-    const team = await Team.create({ name, shortName, logo, owner: req.admin._id });
+    // 🔥 Validation
+    if (!name || !shortName) {
+      return res.status(400).json({
+        message: 'Name and Short Name are required'
+      });
+    }
+
+    const team = await Team.create({
+      name,
+      shortName,
+      logo,
+      owner: req.admin._id
+    });
 
     res.status(201).json({
       message: 'Team created successfully',
       team,
     });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateTeam = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, shortName, logo } = req.body;
+
+    if (!name || !shortName) {
+      return res.status(400).json({
+        message: 'Name and Short Name are required'
+      });
+    }
+
+    const team = await Team.findOneAndUpdate(
+      { _id: id, owner: req.admin._id }, // 🔥 security check
+      { name, shortName, logo },
+      { new: true }
+    );
+
+    if (!team) {
+      return res.status(404).json({
+        message: 'Team not found'
+      });
+    }
+
+    res.status(200).json({
+      message: 'Team updated successfully',
+      team
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteTeam = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const team = await Team.findOneAndDelete({
+      _id: id,
+      owner: req.admin._id
+    });
+
+    if (!team) {
+      return res.status(404).json({
+        message: 'Team not found'
+      });
+    }
+
+    res.status(200).json({
+      message: 'Team deleted successfully'
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -32,6 +102,8 @@ export const getMyTeams = async (req, res) => {
 };
 
 
+
+//Match Apis
 export const createMatch = async (req, res) => {
   try {
     const {
@@ -40,7 +112,8 @@ export const createMatch = async (req, res) => {
       venue,
       series,
       teamAPlaying11,
-      teamBPlaying11
+      teamBPlaying11,
+      matchDateTime
     } = req.body;
 
     // ===============================
@@ -121,6 +194,12 @@ export const createMatch = async (req, res) => {
       });
     }
 
+    if (!matchDateTime) {
+  return res.status(400).json({
+    error: "Match date and time is required"
+  });
+}
+
     // ===============================
     // 5️⃣ Create Match
     // ===============================
@@ -132,6 +211,7 @@ export const createMatch = async (req, res) => {
       series,
       teamAPlaying11,
       teamBPlaying11,
+      matchDateTime,
       status: 'upcoming',
       owner: req.admin._id
     });
@@ -159,6 +239,131 @@ export const createMatch = async (req, res) => {
   }
 };
 
+export const updateMatch = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      teamA,
+      teamB,
+      venue,
+      teamAPlaying11,
+      teamBPlaying11
+    } = req.body;
+
+    const match = await Match.findOne({
+      _id: id,
+      owner: req.admin._id
+    });
+
+    if (!match) {
+      return res.status(404).json({
+        error: "Match not found"
+      });
+    }
+
+    // 🚨 Optional Rule:
+    // Prevent editing if match already live or finished
+    if (match.status !== "upcoming") {
+      return res.status(400).json({
+        error: "Cannot edit a live or finished match"
+      });
+    }
+
+    // ===============================
+    // Basic Validation
+    // ===============================
+
+    if (teamA && teamB && teamA.toString() === teamB.toString()) {
+      return res.status(400).json({
+        error: "Team A and Team B cannot be the same"
+      });
+    }
+
+    // ===============================
+    // Update Fields
+    // ===============================
+
+    if (teamA) match.teamA = teamA;
+    if (teamB) match.teamB = teamB;
+    if (venue !== undefined) match.venue = venue;
+
+    if (teamAPlaying11) {
+      if (teamAPlaying11.length !== 11) {
+        return res.status(400).json({
+          error: "Team A must have 11 players"
+        });
+      }
+      match.teamAPlaying11 = teamAPlaying11;
+    }
+
+    if (teamBPlaying11) {
+      if (teamBPlaying11.length !== 11) {
+        return res.status(400).json({
+          error: "Team B must have 11 players"
+        });
+      }
+      match.teamBPlaying11 = teamBPlaying11;
+    }
+
+    await match.save();
+
+    return res.json({
+      message: "Match updated successfully",
+      match
+    });
+
+  } catch (err) {
+    console.error("Update Match Error:", err);
+    return res.status(500).json({
+      error: "Server error while updating match"
+    });
+  }
+};
+
+export const deleteMatch = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const match = await Match.findOne({
+      _id: id,
+      owner: req.admin._id
+    });
+
+    if (!match) {
+      return res.status(404).json({
+        error: "Match not found"
+      });
+    }
+
+    // Prevent deleting live match
+    if (match.status === "live") {
+      return res.status(400).json({
+        error: "Cannot delete a live match"
+      });
+    }
+
+    // Decrease series count
+    if (match.series) {
+      await Series.findByIdAndUpdate(match.series, {
+        $inc: { totalMatches: -1 }
+      });
+    }
+
+    await match.deleteOne();
+
+    return res.json({
+      message: "Match deleted successfully"
+    });
+
+  } catch (err) {
+    console.error("Delete Match Error:", err);
+    return res.status(500).json({
+      error: "Server error while deleting match"
+    });
+  }
+};
+
 
 export const getMatchesOfSeries = async (req, res) => {
   try {
@@ -174,6 +379,8 @@ export const getMatchesOfSeries = async (req, res) => {
   }
 };
 
+
+// Series Apis
 
 export const addSeries = async (req, res) => {
   try {
@@ -205,6 +412,56 @@ export const getMySeries = async (req, res) => {
   }
 };
 
+export const updateSeries = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, type, startDate, endDate } = req.body;
+
+    const series = await Series.findOneAndUpdate(
+      { _id: id, owner: req.admin._id }, // 🔐 ensure owner only
+      { name, type, startDate, endDate },
+      { new: true }
+    );
+
+    if (!series) {
+      return res.status(404).json({
+        message: 'Series not found'
+      });
+    }
+
+    res.json({
+      message: 'Series updated successfully',
+      series
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteSeries = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const series = await Series.findOneAndDelete({
+      _id: id,
+      owner: req.admin._id
+    });
+
+    if (!series) {
+      return res.status(404).json({
+        message: 'Series not found'
+      });
+    }
+
+    res.json({
+      message: 'Series deleted successfully'
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
 export const updateToss = async (req, res) => {

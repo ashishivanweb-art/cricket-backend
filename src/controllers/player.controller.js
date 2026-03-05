@@ -36,6 +36,49 @@ export const addPlayer = async (req, res) => {
 };
 
 
+
+export const removePlayer = async (req, res) => {
+  try {
+    const { teamId, playerId } = req.params;
+
+    // 1️⃣ Verify team ownership
+    const team = await Team.findOne({
+      _id: teamId,
+      owner: req.admin._id
+    });
+
+    if (!team) {
+      return res.status(403).json({ message: 'Not your team' });
+    }
+
+    // 2️⃣ Verify player exists and belongs to admin
+    const player = await Player.findOne({
+      _id: playerId,
+      owner: req.admin._id,
+      team: teamId
+    });
+
+    if (!player) {
+      return res.status(404).json({ message: 'Player not found' });
+    }
+
+    // 3️⃣ Remove player reference from team
+    team.players = team.players.filter(
+      (id) => id.toString() !== playerId
+    );
+
+    await team.save();
+
+    // 4️⃣ Delete player document
+    await Player.findByIdAndDelete(playerId);
+
+    res.json({ message: 'Player removed successfully' });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getPlayersByTeam = async (req, res) => {
   try {
     const players = await Player.find({ team: req.params.teamId, owner: req.admin._id });

@@ -114,7 +114,10 @@ inningsHistory: [
     balls: Number
   }
 ],
-
+matchDateTime: {
+  type: Date,
+  required: true
+},
 
 targetRuns: { type:Number},
 isDLSApplied:{type: Boolean, default: false }
